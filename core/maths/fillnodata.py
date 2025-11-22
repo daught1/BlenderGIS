@@ -183,27 +183,27 @@ def sincinterp(image, x,  y, kernel_size=3 ):
         the interpolated value of ``image`` at the points specified by ``x`` and ``y``
         """
 
-	# the output array
-	r = np.zeros( [x.shape[0], x.shape[1]], dtype=DTYPEf)
+    # the output array
+    r = np.zeros( [x.shape[0], x.shape[1]], dtype=DTYPEf)
 
-	# fast pi
-	pi = 3.1419
+    # fast pi
+    pi = 3.1419
 
-	# for each point of the output array
-	for I in range(x.shape[0]):
-		for J in range(x.shape[1]):
+    # for each point of the output array
+    for I in range(x.shape[0]):
+        for J in range(x.shape[1]):
 
-			#loop over all neighbouring grid points
-			for i in range( int(x[I,J])-kernel_size, int(x[I,J])+kernel_size+1 ):
-				for j in range( int(y[I,J])-kernel_size, int(y[I,J])+kernel_size+1 ):
-					# check that we are in the boundaries
-					if i >= 0 and i <= image.shape[0] and j >= 0 and j <= image.shape[1]:
-						if (i-x[I,J]) == 0.0 and (j-y[I,J]) == 0.0:
-							r[I,J] = r[I,J] + image[i,j]
-						elif (i-x[I,J]) == 0.0:
-							r[I,J] = r[I,J] + image[i,j] * np.sin( pi*(j-y[I,J]) )/( pi*(j-y[I,J]) )
-						elif (j-y[I,J]) == 0.0:
-							r[I,J] = r[I,J] + image[i,j] * np.sin( pi*(i-x[I,J]) )/( pi*(i-x[I,J]) )
-						else:
-							r[I,J] = r[I,J] + image[i,j] * np.sin( pi*(i-x[I,J]) )*np.sin( pi*(j-y[I,J]) )/( pi*pi*(i-x[I,J])*(j-y[I,J]))
-	return r
+            #loop over all neighbouring grid points
+            for i in range( int(x[I,J])-kernel_size, int(x[I,J])+kernel_size+1 ):
+                for j in range( int(y[I,J])-kernel_size, int(y[I,J])+kernel_size+1 ):
+                    # check that we are in the boundaries
+                    if i >= 0 and i <= image.shape[0] and j >= 0 and j <= image.shape[1]:
+                        if (i-x[I,J]) == 0.0 and (j-y[I,J]) == 0.0:
+                            r[I,J] = r[I,J] + image[i,j]
+                        elif (i-x[I,J]) == 0.0:
+                            r[I,J] = r[I,J] + image[i,j] * np.sin( pi*(j-y[I,J]) )/( pi*(j-y[I,J]) )
+                        elif (j-y[I,J]) == 0.0:
+                            r[I,J] = r[I,J] + image[i,j] * np.sin( pi*(i-x[I,J]) )/( pi*(i-x[I,J]) )
+                        else:
+                            r[I,J] = r[I,J] + image[i,j] * np.sin( pi*(i-x[I,J]) )*np.sin( pi*(j-y[I,J]) )/( pi*pi*(i-x[I,J])*(j-y[I,J]))
+    return r
