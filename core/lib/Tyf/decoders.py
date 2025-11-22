@@ -10,8 +10,8 @@ _1 = _3 = _4 = _6 = _8 = _9 = _11 = _12 = lambda value: value[0] if len(value) =
 _2 = lambda value: value[:-1]
 
 def _5(value):
-	result = tuple((float(n)/(1 if d==0 else d)) for n,d in zip(value[0::2], value[1::2]))
-	return result[0] if len(result) == 1 else result
+    result = tuple((float(n)/(1 if d==0 else d)) for n,d in zip(value[0::2], value[1::2]))
+    return result[0] if len(result) == 1 else result
 
 _7 = lambda value: value
 
@@ -28,8 +28,8 @@ _0x9286 = _0x1b = lambda value: value[8:]
 _0x1 = lambda value: 1 if value in [b"N\x00", b"N"] else -1
 #GPSLatitude
 def _0x2(value):
-	degrees, minutes, seconds = _5(value)
-	return (seconds/60 + minutes)/60 + degrees
+    degrees, minutes, seconds = _5(value)
+    return (seconds/60 + minutes)/60 + degrees
 #GPSLatitudeRef
 _0x3 = lambda value: 1 if value in [b"E\x00", b"E"] else -1
 #GPSLongitude

@@ -289,19 +289,19 @@ class CAMERA_OT_geophotos_setactive(Operator):
         return {'FINISHED'}
 
 classes = [
-	CAMERA_OT_geophotos_add,
-	CAMERA_OT_geophotos_setactive
+    CAMERA_OT_geophotos_add,
+    CAMERA_OT_geophotos_setactive
 ]
 
 def register():
-	for cls in classes:
-		try:
-			bpy.utils.register_class(cls)
-		except ValueError as e:
-			log.warning('{} is already registered, now unregister and retry... '.format(cls))
-			bpy.utils.unregister_class(cls)
-			bpy.utils.register_class(cls)
+    for cls in classes:
+        try:
+            bpy.utils.register_class(cls)
+        except ValueError as e:
+            log.warning('{} is already registered, now unregister and retry... '.format(cls))
+            bpy.utils.unregister_class(cls)
+            bpy.utils.register_class(cls)
 
 def unregister():
-	for cls in classes:
-		bpy.utils.unregister_class(cls)
+    for cls in classes:
+        bpy.utils.unregister_class(cls)
