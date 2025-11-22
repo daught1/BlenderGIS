@@ -78,9 +78,13 @@ def queryBuilder(bbox, tags=['building', 'highway'], types=['node', 'way', 'rela
             osm_type = 'relation'
         if osm_type not in types:
             continue
-        selectors.append(_selector(osm_type))
+        selectors.append(_selector(osm_type) + ';')
 
-    union = '(' + ';'.join(selectors) + ');'
+    # Overpass requires each statement inside the union to end with a
+    # semicolon, including the last one. Build the union with explicit
+    # trailing semicolons to avoid parse errors when the final statement
+    # is immediately followed by the closing parenthesis.
+    union = '(' + ''.join(selectors) + ');'
 
     # out body keeps full tags on primary elements, the recurse brings in
     # all referenced members (ways and nodes) for geometry completeness
