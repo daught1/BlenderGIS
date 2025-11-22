@@ -210,6 +210,9 @@ class OSM_IMPORT():
 				1. create a bmesh from [pts]
 				2. seed a global bmesh or create a new object
 			'''
+			# local extended tags list (includes "key=value" forms) for grouping
+			extags_local = list(tags.keys()) + [k + '=' + v for k, v in tags.items()]
+
 			if len(pts) > 1:
 				if pts[0] == pts[-1] and any(tag in closedWaysArePolygons for tag in tags):
 					type = 'Areas'
@@ -361,7 +364,7 @@ class OSM_IMPORT():
 					#group by tags (there could be some duplicates)
 					for k in self.filterTags:
 
-						if k in extags: #
+						if k in extags_local: #
 							objName = type + ':' + k
 							kbm = bmeshes.setdefault(objName, bmesh.new())
 							offset = len(kbm.verts)
@@ -380,7 +383,7 @@ class OSM_IMPORT():
 				vidx = [v.index + offset for v in bm.verts]
 				vgroups = vgroupsObj.setdefault(objName, {})
 
-				for tag in extags:
+				for tag in extags_local:
 					#if tag in osmTags:#filter
 					if not tag.startswith('name'):
 						vgroup = vgroups.setdefault('Tag:'+tag, [])
@@ -399,7 +402,6 @@ class OSM_IMPORT():
 							if id == member.ref:
 								vgroup = vgroups.setdefault('Relation:'+name, [])
 								vgroup.extend(vidx)
-
 
 
 			bm.free()
