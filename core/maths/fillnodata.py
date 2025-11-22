@@ -150,38 +150,38 @@ def replace_nans(array, max_iter, tolerance, kernel_size=1, method='localmean'):
 
 
 def sincinterp(image, x,  y, kernel_size=3 ):
-	"""
-	Re-sample an image at intermediate positions between pixels.
-	This function uses a cardinal interpolation formula which limits
-	the loss of information in the resampling process. It uses a limited
-	number of neighbouring pixels.
+        r"""
+        Re-sample an image at intermediate positions between pixels.
+        This function uses a cardinal interpolation formula which limits
+        the loss of information in the resampling process. It uses a limited
+        number of neighbouring pixels.
 
-	The new image :math:`im^+` at fractional locations :math:`x` and :math:`y` is computed as:
-	.. math::
-	im^+(x,y) = \sum_{i=-\mathtt{kernel\_size}}^{i=\mathtt{kernel\_size}} \sum_{j=-\mathtt{kernel\_size}}^{j=\mathtt{kernel\_size}} \mathtt{image}(i,j) sin[\pi(i-\mathtt{x})] sin[\pi(j-\mathtt{y})] / \pi(i-\mathtt{x}) / \pi(j-\mathtt{y})
+        The new image :math:`im^+` at fractional locations :math:`x` and :math:`y` is computed as:
+        .. math::
+        im^+(x,y) = \sum_{i=-\mathtt{kernel\_size}}^{i=\mathtt{kernel\_size}} \sum_{j=-\mathtt{kernel\_size}}^{j=\mathtt{kernel\_size}} \mathtt{image}(i,j) sin[\pi(i-\mathtt{x})] sin[\pi(j-\mathtt{y})] / \pi(i-\mathtt{x}) / \pi(j-\mathtt{y})
 
-	Parameters
-	----------
-	image : np.ndarray, dtype np.int32
-	the image array.
+        Parameters
+        ----------
+        image : np.ndarray, dtype np.int32
+        the image array.
 
-	x : two dimensions np.ndarray of floats
-	an array containing fractional pixel row
-	positions at which to interpolate the image
+        x : two dimensions np.ndarray of floats
+        an array containing fractional pixel row
+        positions at which to interpolate the image
 
-	y : two dimensions np.ndarray of floats
-	an array containing fractional pixel column
-	positions at which to interpolate the image
+        y : two dimensions np.ndarray of floats
+        an array containing fractional pixel column
+        positions at which to interpolate the image
 
-	kernel_size : int
-	interpolation is performed over a ``(2*kernel_size+1)*(2*kernel_size+1)``
-	submatrix in the neighbourhood of each interpolation point.
+        kernel_size : int
+        interpolation is performed over a ``(2*kernel_size+1)*(2*kernel_size+1)``
+        submatrix in the neighbourhood of each interpolation point.
 
-	Returns
-	-------
-	im : np.ndarray, dtype np.float64
-	the interpolated value of ``image`` at the points specified by ``x`` and ``y``
-	"""
+        Returns
+        -------
+        im : np.ndarray, dtype np.float64
+        the interpolated value of ``image`` at the points specified by ``x`` and ``y``
+        """
 
 	# the output array
 	r = np.zeros( [x.shape[0], x.shape[1]], dtype=DTYPEf)
