@@ -43,47 +43,51 @@ closedWaysAreExtruded = ['building']
 
 
 def queryBuilder(bbox, tags=['building', 'highway'], types=['node', 'way', 'relation'], format='json'):
+    '''
+    QL template syntax :
+    [out:json][bbox:ymin,xmin,ymax,xmax];(node[tag1];node[tag2];way[tag1];way[tag2];relation[tag1];relation[tag2];);out body;>;out skel qt;
+    '''
 
-        '''
-        QL template syntax :
-        [out:json][bbox:ymin,xmin,ymax,xmax];(node[tag1];node[tag2];way[tag1];way[tag2];relation[tag1];relation[tag2];);out body;>;out skel qt;
-        '''
+    #s,w,n,e <--> ymin,xmin,ymax,xmax
+    bboxStr = ','.join(map(str, bbox.toLatlon()))
 
-        #s,w,n,e <--> ymin,xmin,ymax,xmax
-        bboxStr = ','.join(map(str, bbox.toLatlon()))
+    if not types:
+        #if no type filter is defined then just select all kind of type
+        types = ['node', 'way', 'relation']
 
-        if not types:
-                #if no type filter is defined then just select all kind of type
-                types = ['node', 'way', 'relation']
+    # Always pull relations when tags are provided so relation-only tags (e.g.,
+    # natural=*) can be propagated to their member ways/nodes even if the user
+    # did not explicitly request relations.
+    types = set(types)
+    if 'rel' in types:
+        types.discard('rel')
+        types.add('relation')
+    if tags and ('way' in types or 'node' in types):
+        types.add('relation')
 
-        def _selector(osm_type):
-                if tags:
-                        return ';'.join([f"{osm_type}[{tag}]" for tag in tags])
-                return osm_type
+    def _selector(osm_type):
+        if tags:
+            return ';'.join([f"{osm_type}[{tag}]" for tag in tags])
+        return osm_type
 
-        head = f"[out:{format}][bbox:{bboxStr}];"
+    head = f"[out:{format}][bbox:{bboxStr}];"
 
-        selectors = []
-        for osm_type in types:
-                if osm_type == 'rel':
-                        osm_type = 'relation'
-                if osm_type not in {'node', 'way', 'relation'}:
-                        continue
-                selectors.append(_selector(osm_type))
+    selectors = []
+    for osm_type in ('node', 'way', 'relation'):
+        if osm_type == 'rel':
+            osm_type = 'relation'
+        if osm_type not in types:
+            continue
+        selectors.append(_selector(osm_type))
 
-        union = '(' + ';'.join(selectors) + ');'
+    union = '(' + ';'.join(selectors) + ');'
 
-        # out body keeps full tags on primary elements, the recurse brings in
-        # all referenced members (ways and nodes) for geometry completeness
-        output = 'out body;>;' + 'out skel qt;'
-        qry = head + union + output
+    # out body keeps full tags on primary elements, the recurse brings in
+    # all referenced members (ways and nodes) for geometry completeness
+    output = 'out body;>;' + 'out skel qt;'
+    qry = head + union + output
 
-        return qry
-
-
-
-
-
+    return qry
 ########################
 def joinBmesh(src_bm, dest_bm):
 	'''
