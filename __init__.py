@@ -144,19 +144,19 @@ if CAM_GEOREF:
 	from .operators import add_camera_georef
 if EXPORT_SHP:
 	from .operators import io_export_shp
-if GET_DEM:
+	if GET_DEM:
 	from .operators import io_get_dem
 if IMPORT_GEORASTER:
         from .operators import io_import_georaster
-if IMPORT_OSM:
+	if IMPORT_OSM:
         from .operators import io_import_osm
 if IMPORT_SHP:
         from .operators import io_import_shp
-if IMPORT_ASC:
+	if IMPORT_ASC:
         from .operators import io_import_asc
-if IMPORT_GPX:
+	if IMPORT_GPX:
         from .operators import io_import_gpx
-if DELAUNAY:
+	if DELAUNAY:
         from .operators import mesh_delaunay_voronoi
 if TERRAIN_NODES:
         from .operators import nodes_terrain_analysis_builder
@@ -164,7 +164,7 @@ if TERRAIN_RECLASS:
 	from .operators import nodes_terrain_analysis_reclassify
 if BASEMAPS:
 	from .operators import view3d_mapviewer
-if DROP:
+	if DROP:
 	from .operators import object_drop
 if EARTH_SPHERE:
 	from .operators import mesh_earth_sphere
@@ -200,11 +200,11 @@ class VIEW3D_MT_menu_gis_import(bpy.types.Menu):
             self.layout.operator("importgis.shapefile_file_dialog", icon_value=icons_dict["shp"].icon_id, text='Shapefile (.shp)')
         if IMPORT_GEORASTER:
             self.layout.operator("importgis.georaster", icon_value=icons_dict["raster"].icon_id, text="Georeferenced raster (.tif .jpg .jp2 .png)")
-        if IMPORT_OSM:
+        	if IMPORT_OSM:
             self.layout.operator("importgis.osm_file", icon_value=icons_dict["osm"].icon_id, text="Open Street Map xml (.osm)")
-        if IMPORT_ASC:
+        	if IMPORT_ASC:
             self.layout.operator('importgis.asc_file', icon_value=icons_dict["asc"].icon_id, text="ESRI ASCII Grid (.asc)")
-        if IMPORT_GPX:
+        	if IMPORT_GPX:
             self.layout.operator('importgis.gpx_file_dialog', icon_value=icons_dict["curve"].icon_id, text="GPS exchange format (.gpx)")
 
 class VIEW3D_MT_menu_gis_export(bpy.types.Menu):
@@ -218,9 +218,9 @@ class VIEW3D_MT_menu_gis_webgeodata(bpy.types.Menu):
 	def draw(self, context):
 		if BASEMAPS:
 			self.layout.operator("view3d.map_start", icon_value=icons_dict["layers"].icon_id)
-		if IMPORT_OSM:
+			if IMPORT_OSM:
 			self.layout.operator("importgis.osm_query", icon_value=icons_dict["osm"].icon_id)
-		if GET_DEM:
+			if GET_DEM:
 			self.layout.operator("importgis.dem_query", icon_value=icons_dict["raster"].icon_id)
 
 class VIEW3D_MT_menu_gis_camera(bpy.types.Menu):
@@ -235,7 +235,7 @@ class VIEW3D_MT_menu_gis_camera(bpy.types.Menu):
 class VIEW3D_MT_menu_gis_mesh(bpy.types.Menu):
 	bl_label = "Mesh"
 	def draw(self, context):
-		if DELAUNAY:
+			if DELAUNAY:
 			self.layout.operator("tesselation.delaunay", icon_value=icons_dict["delaunay"].icon_id, text='Delaunay')
 			self.layout.operator("tesselation.voronoi", icon_value=icons_dict["voronoi"].icon_id, text='Voronoi')
 		if EARTH_SPHERE:
@@ -246,7 +246,7 @@ class VIEW3D_MT_menu_gis_mesh(bpy.types.Menu):
 class VIEW3D_MT_menu_gis_object(bpy.types.Menu):
 	bl_label = "Object"
 	def draw(self, context):
-		if DROP:
+			if DROP:
 			self.layout.operator("object.drop", icon_value=icons_dict["drop"].icon_id, text='Drop')
 
 class VIEW3D_MT_menu_gis_nodes(bpy.types.Menu):
@@ -322,15 +322,15 @@ def register():
 		io_export_shp.register()
 	if IMPORT_OSM:
 		io_import_osm.register()
-        if IMPORT_ASC:
-                io_import_asc.register()
-        if IMPORT_GPX:
-                io_import_gpx.register()
-        if DELAUNAY:
-                mesh_delaunay_voronoi.register()
-        if DROP:
-                object_drop.register()
-        if GET_DEM:
+	if IMPORT_ASC:
+		io_import_asc.register()
+	if IMPORT_GPX:
+		io_import_gpx.register()
+	if DELAUNAY:
+		mesh_delaunay_voronoi.register()
+	if DROP:
+		object_drop.register()
+	if GET_DEM:
 		io_get_dem.register()
 	if CAM_GEOPHOTO:
 		add_camera_exif.register()
@@ -394,17 +394,17 @@ def unregister():
                 io_import_shp.unregister()
         if EXPORT_SHP:
                 io_export_shp.unregister()
-        if IMPORT_OSM:
+        	if IMPORT_OSM:
                 io_import_osm.unregister()
-        if IMPORT_ASC:
+        	if IMPORT_ASC:
                 io_import_asc.unregister()
-        if IMPORT_GPX:
+        	if IMPORT_GPX:
                 io_import_gpx.unregister()
-        if DELAUNAY:
+        	if DELAUNAY:
                 mesh_delaunay_voronoi.unregister()
-        if DROP:
+        	if DROP:
                 object_drop.unregister()
-	if GET_DEM:
+		if GET_DEM:
 		io_get_dem.unregister()
 	if CAM_GEOPHOTO:
 		add_camera_exif.unregister()
