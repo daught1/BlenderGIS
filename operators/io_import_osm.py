@@ -411,52 +411,52 @@ class OSM_IMPORT():
 			layer = bpy.data.collections.new('OSM')
 			context.scene.collection.children.link(layer)
 
-                #Build mesh
-                waysNodesId = [node.id for way in result.ways for node in way.nodes]
+		#Build mesh
+		waysNodesId = [node.id for way in result.ways for node in way.nodes]
 
-                #Collect tags defined on relations to propagate them to their members
-                relationTagsByMember = {}
-                for rel in result.relations:
-                        for member in rel.members:
-                                relTags = relationTagsByMember.setdefault(member.ref, {})
-                                for key, value in rel.tags.items():
-                                        #Do not overwrite existing tags to let member specific tags prevail
-                                        relTags.setdefault(key, value)
+		#Collect tags defined on relations to propagate them to their members
+		relationTagsByMember = {}
+		for rel in result.relations:
+			for member in rel.members:
+				relTags = relationTagsByMember.setdefault(member.ref, {})
+				for key, value in rel.tags.items():
+					#Do not overwrite existing tags to let member specific tags prevail
+					relTags.setdefault(key, value)
 
-                if 'node' in self.featureType:
+		if 'node' in self.featureType:
 
-                        for node in result.nodes:
+			for node in result.nodes:
 
-                                mergedTags = dict(relationTagsByMember.get(node.id, {}))
-                                mergedTags.update(node.tags)
+				mergedTags = dict(relationTagsByMember.get(node.id, {}))
+				mergedTags.update(node.tags)
 
-                                #extended tags list
-                                extags = list(mergedTags.keys()) + [k + '=' + v for k, v in mergedTags.items()]
+				#extended tags list
+				extags = list(mergedTags.keys()) + [k + '=' + v for k, v in mergedTags.items()]
 
-                                if node.id in waysNodesId:
-                                        continue
+				if node.id in waysNodesId:
+					continue
 
-                                if self.filterTags and not any(tag in self.filterTags for tag in extags):
-                                        continue
+				if self.filterTags and not any(tag in self.filterTags for tag in extags):
+					continue
 
-                                pt = (float(node.lon), float(node.lat))
-                                seed(node.id, mergedTags, [pt])
+				pt = (float(node.lon), float(node.lat))
+				seed(node.id, mergedTags, [pt])
 
 
-                if 'way' in self.featureType:
+		if 'way' in self.featureType:
 
-                        for way in result.ways:
+			for way in result.ways:
 
-                                mergedTags = dict(relationTagsByMember.get(way.id, {}))
-                                mergedTags.update(way.tags)
+				mergedTags = dict(relationTagsByMember.get(way.id, {}))
+				mergedTags.update(way.tags)
 
-                                extags = list(mergedTags.keys()) + [k + '=' + v for k, v in mergedTags.items()]
+				extags = list(mergedTags.keys()) + [k + '=' + v for k, v in mergedTags.items()]
 
-                                if self.filterTags and not any(tag in self.filterTags for tag in extags):
-                                        continue
+				if self.filterTags and not any(tag in self.filterTags for tag in extags):
+					continue
 
-                                pts = [(float(node.lon), float(node.lat)) for node in way.nodes]
-                                seed(way.id, mergedTags, pts)
+				pts = [(float(node.lon), float(node.lat)) for node in way.nodes]
+				seed(way.id, mergedTags, pts)
 
 
 
