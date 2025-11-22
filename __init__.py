@@ -51,6 +51,7 @@ IMPORT_GEORASTER = True
 IMPORT_OSM = True
 IMPORT_SHP = True
 IMPORT_ASC = True
+IMPORT_GPX = True
 DELAUNAY = True
 TERRAIN_NODES = True
 TERRAIN_RECLASS = True
@@ -148,13 +149,15 @@ if GET_DEM:
 if IMPORT_GEORASTER:
 	from .operators import io_import_georaster
 if IMPORT_OSM:
-	from .operators import io_import_osm
+        from .operators import io_import_osm
 if IMPORT_SHP:
-	from .operators import io_import_shp
+        from .operators import io_import_shp
 if IMPORT_ASC:
-	from .operators import io_import_asc
+        from .operators import io_import_asc
+if IMPORT_GPX:
+        from .operators import io_import_gpx
 if DELAUNAY:
-	from .operators import mesh_delaunay_voronoi
+        from .operators import mesh_delaunay_voronoi
 if TERRAIN_NODES:
 	from .operators import nodes_terrain_analysis_builder
 if TERRAIN_RECLASS:
@@ -194,12 +197,14 @@ class VIEW3D_MT_menu_gis_import(bpy.types.Menu):
 	def draw(self, context):
 		if IMPORT_SHP:
 			self.layout.operator("importgis.shapefile_file_dialog", icon_value=icons_dict["shp"].icon_id, text='Shapefile (.shp)')
-		if IMPORT_GEORASTER:
-			self.layout.operator("importgis.georaster", icon_value=icons_dict["raster"].icon_id, text="Georeferenced raster (.tif .jpg .jp2 .png)")
-		if IMPORT_OSM:
-			self.layout.operator("importgis.osm_file", icon_value=icons_dict["osm"].icon_id, text="Open Street Map xml (.osm)")
-		if IMPORT_ASC:
-			self.layout.operator('importgis.asc_file', icon_value=icons_dict["asc"].icon_id, text="ESRI ASCII Grid (.asc)")
+                if IMPORT_GEORASTER:
+                        self.layout.operator("importgis.georaster", icon_value=icons_dict["raster"].icon_id, text="Georeferenced raster (.tif .jpg .jp2 .png)")
+                if IMPORT_OSM:
+                        self.layout.operator("importgis.osm_file", icon_value=icons_dict["osm"].icon_id, text="Open Street Map xml (.osm)")
+                if IMPORT_ASC:
+                        self.layout.operator('importgis.asc_file', icon_value=icons_dict["asc"].icon_id, text="ESRI ASCII Grid (.asc)")
+                if IMPORT_GPX:
+                        self.layout.operator('importgis.gpx_file', icon_value=icons_dict["curve"].icon_id, text="GPX track (.gpx)")
 
 class VIEW3D_MT_menu_gis_export(bpy.types.Menu):
 	bl_label = "Export"
@@ -314,12 +319,14 @@ def register():
 		io_import_shp.register()
 	if EXPORT_SHP:
 		io_export_shp.register()
-	if IMPORT_OSM:
-		io_import_osm.register()
-	if IMPORT_ASC:
-		io_import_asc.register()
-	if DELAUNAY:
-		mesh_delaunay_voronoi.register()
+        if IMPORT_OSM:
+                io_import_osm.register()
+        if IMPORT_ASC:
+                io_import_asc.register()
+        if IMPORT_GPX:
+                io_import_gpx.register()
+        if DELAUNAY:
+                mesh_delaunay_voronoi.register()
 	if DROP:
 		object_drop.register()
 	if GET_DEM:
@@ -386,12 +393,14 @@ def unregister():
 		io_import_shp.unregister()
 	if EXPORT_SHP:
 		io_export_shp.unregister()
-	if IMPORT_OSM:
-		io_import_osm.unregister()
-	if IMPORT_ASC:
-		io_import_asc.unregister()
-	if DELAUNAY:
-		mesh_delaunay_voronoi.unregister()
+        if IMPORT_OSM:
+                io_import_osm.unregister()
+        if IMPORT_ASC:
+                io_import_asc.unregister()
+        if IMPORT_GPX:
+                io_import_gpx.unregister()
+        if DELAUNAY:
+                mesh_delaunay_voronoi.unregister()
 	if DROP:
 		object_drop.unregister()
 	if GET_DEM:
