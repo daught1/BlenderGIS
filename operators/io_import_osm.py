@@ -73,9 +73,14 @@ def queryBuilder(bbox, tags=['building', 'highway'], types=['node', 'way', 'rela
 			else:
 				union += 'way;);'
 			union += '>;);'
-		#all relations (no filter tag applied)
-		if 'relation' in types or 'rel' in types:
-			union += 'relation;'
+                #all relations with their members
+                if 'relation' in types or 'rel' in types:
+                        union += '('
+                        if tags:
+                                union += ';'.join(['relation['+tag+']' for tag in tags]) + ';>;'
+                        else:
+                                union += 'relation;>;'
+                        union += ')'
 		union += ')'
 
 		output = ';out;'
