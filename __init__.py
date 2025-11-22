@@ -145,31 +145,29 @@ if CAM_GEOREF:
 if EXPORT_SHP:
 	from .operators import io_export_shp
 	if GET_DEM:
-	from .operators import io_get_dem
+		from .operators import io_get_dem
 if IMPORT_GEORASTER:
-        from .operators import io_import_georaster
+	from .operators import io_import_georaster
 	if IMPORT_OSM:
-        from .operators import io_import_osm
+		from .operators import io_import_osm
 if IMPORT_SHP:
-        from .operators import io_import_shp
+	from .operators import io_import_shp
 	if IMPORT_ASC:
-        from .operators import io_import_asc
+		from .operators import io_import_asc
 	if IMPORT_GPX:
-        from .operators import io_import_gpx
+		from .operators import io_import_gpx
 	if DELAUNAY:
-        from .operators import mesh_delaunay_voronoi
+		from .operators import mesh_delaunay_voronoi
 if TERRAIN_NODES:
-        from .operators import nodes_terrain_analysis_builder
+	from .operators import nodes_terrain_analysis_builder
 if TERRAIN_RECLASS:
 	from .operators import nodes_terrain_analysis_reclassify
 if BASEMAPS:
 	from .operators import view3d_mapviewer
 	if DROP:
-	from .operators import object_drop
+		from .operators import object_drop
 if EARTH_SPHERE:
 	from .operators import mesh_earth_sphere
-
-
 import bpy.utils.previews as iconsLib
 icons_dict = {}
 
