@@ -135,11 +135,17 @@ class NpImage():
 
         #init from PIL Image instance
         if HAS_PIL:
-            # Pillow >= 10 removed Image.isImageType; fall back to isinstance check
-            if hasattr(Image, 'isImageType'):
-                is_pil_img = Image.isImageType(data)
-            else:
-                is_pil_img = isinstance(data, Image.Image)
+            is_pil_img = isinstance(data, Image.Image)
+
+            # Older Pillow versions expose Image.isImageType for broader checks; use it only
+            # when available and callable to avoid AttributeError in newer releases.
+            if not is_pil_img:
+                is_image_type = getattr(Image, 'isImageType', None)
+                if callable(is_image_type):
+                    try:
+                        is_pil_img = is_image_type(data)
+                    except Exception:
+                        is_pil_img = False
 
             if is_pil_img:
                 self.data = self._npFromPIL(data)
