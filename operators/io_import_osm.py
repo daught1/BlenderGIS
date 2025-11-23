@@ -14,6 +14,7 @@ from bpy.props import StringProperty, IntProperty, FloatProperty, BoolProperty, 
 from .lib.osm import overpy
 
 from ..geoscene import GeoScene
+from ..prefs import DEFAULT_OSM_TAG_LABELS, format_osm_tag_label
 from .utils import adjust3Dview, getBBOX, DropToGround, isTopView
 
 from ..core.proj import Reproj, reprojBbox, reprojPt, utm
@@ -27,10 +28,23 @@ PKG, SUBPKG = __package__.split('.', maxsplit=1)
 #WARNING: There is a known bug with using an enum property with a callback, Python must keep a reference to the strings returned
 #https://developer.blender.org/T48873
 #https://developer.blender.org/T38489
+MAX_OSM_FILTER_TAGS = 32
+
+
 def getTags():
     prefs = bpy.context.preferences.addons[PKG].preferences
     tags = json.loads(prefs.osmTagsJson)
-    return tags
+    if len(tags) > MAX_OSM_FILTER_TAGS:
+        log.warning(
+            "OSM filter tag list has %s items; trimming to first %s to satisfy Blender enum flag limit",
+            len(tags),
+            MAX_OSM_FILTER_TAGS,
+        )
+    return tags[:MAX_OSM_FILTER_TAGS]
+
+
+def get_tag_label(tag):
+    return DEFAULT_OSM_TAG_LABELS.get(tag, format_osm_tag_label(tag))
 
 #Global variable that will be seed by getTags() at each operator invoke
 #then callback of dynamic enum will use this global variable
@@ -117,7 +131,8 @@ class OSM_IMPORT():
         #we need to use a global variable as workaround to enum callback bug (T48873, T38489)
         for tag in OSMTAGS:
             #put each item in a tuple (key, label, tooltip)
-            items.append( (tag, tag, tag) )
+            label = get_tag_label(tag)
+            items.append( (tag, label, tag) )
         return items
 
     filterTags: EnumProperty(
@@ -563,6 +578,10 @@ class IMPORTGIS_OT_osm_file(Operator, OSM_IMPORT):
 
         scn = context.scene
 
+        if not self.filterTags:
+            self.report({'ERROR'}, "Select at least one tag to import")
+            return {'CANCELLED'}
+
         if not os.path.exists(self.filepath):
             self.report({'ERROR'}, "Invalid file")
             return{'CANCELLED'}
@@ -658,6 +677,10 @@ class IMPORTGIS_OT_osm_query(Operator, OSM_IMPORT):
         geoscn = GeoScene(scn)
         objs = context.selected_objects
         aObj = context.active_object
+
+        if not self.filterTags:
+            self.report({'ERROR'}, "Select at least one tag to import")
+            return {'CANCELLED'}
 
         if not geoscn.isGeoref:
                 self.report({'ERROR'}, "Scene is not georef")

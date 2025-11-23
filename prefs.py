@@ -53,16 +53,91 @@ DEFAULT_OVERPASS_SERVER =  [
     ("https://overpass.kumi.systems/api/interpreter", 'overpass.kumi.systems', 'Kumi Systems Overpass Instance')
 ]
 
+DEFAULT_OSM_TAG_LIBRARY = {
+    'Amenities': [
+        'amenity',
+        'amenity=parking',
+        'amenity=school'
+    ],
+    'Boundaries': [
+        'boundary',
+        'boundary=administrative'
+    ],
+    'Buildings': [
+        'building',
+        'building=apartments',
+        'building=residential'
+    ],
+    'Landuse': [
+        'landuse',
+        'landuse=farmland',
+        'landuse=forest'
+    ],
+    'Leisure': [
+        'leisure',
+        'leisure=park'
+    ],
+    'Man made': [
+        'man_made',
+        'man_made=bridge'
+    ],
+    'Natural': [
+        'natural',
+        'natural=cliff',
+        'natural=glacier',
+        'natural=scree',
+        'natural=wood'
+    ],
+    'Railway': [
+        'railway',
+        'railway=station'
+    ],
+    'Roads': [
+        'highway',
+        'highway=cycleway',
+        'highway=primary',
+        'highway=residential',
+        'highway=track'
+    ],
+    'Shops': [
+        'shop',
+        'shop=supermarket'
+    ],
+    'Tourism': [
+        'tourism'
+    ],
+    'Water': [
+        'waterway',
+        'waterway=river'
+    ]
+}
+
+
+def format_osm_tag_label(tag, group=None):
+    pretty = tag.replace('_', ' ')
+    if '=' in pretty:
+        key, value = pretty.split('=', 1)
+        pretty = f"{key.title()}: {value.title()}"
+    else:
+        pretty = pretty.title()
+
+    if group:
+        return f"{group}: {pretty}"
+    return pretty
+
+
+def _build_default_osm_tags():
+    tags = []
+    labels = {}
+    for group, entries in DEFAULT_OSM_TAG_LIBRARY.items():
+        for tag in entries:
+            tags.append(tag)
+            labels[tag] = format_osm_tag_label(tag, group)
+    return tags, labels
+
+
 #default filter tags for OSM import
-DEFAULT_OSM_TAGS = [
-    'building',
-    'highway',
-    'landuse',
-    'leisure',
-    'natural',
-    'railway',
-    'waterway'
-]
+DEFAULT_OSM_TAGS, DEFAULT_OSM_TAG_LABELS = _build_default_osm_tags()
 
 
 
@@ -162,7 +237,7 @@ class BGIS_PREFS(AddonPreferences):
         prefs = context.preferences.addons[PKG].preferences
         tags = json.loads(prefs.osmTagsJson)
         #put each item in a tuple (key, label, tooltip)
-        return [ (tag, tag, tag) for tag in tags]
+        return [ (tag, DEFAULT_OSM_TAG_LABELS.get(tag, format_osm_tag_label(tag)), tag) for tag in tags]
 
     osmTags: EnumProperty(
         name = "OSM tags",
