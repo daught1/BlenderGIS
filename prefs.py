@@ -60,6 +60,8 @@ DEFAULT_OSM_TAGS = [
     'landuse',
     'leisure',
     'natural',
+    'natural=wood',
+    'natural=glacier',
     'railway',
     'waterway'
 ]
