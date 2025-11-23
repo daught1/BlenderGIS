@@ -14,6 +14,7 @@ from bpy.props import StringProperty, IntProperty, FloatProperty, BoolProperty, 
 from .lib.osm import overpy
 
 from ..geoscene import GeoScene
+from ..prefs import DEFAULT_OSM_TAG_LABELS, format_osm_tag_label
 from .utils import adjust3Dview, getBBOX, DropToGround, isTopView
 
 from ..core.proj import Reproj, reprojBbox, reprojPt, utm
@@ -31,6 +32,10 @@ def getTags():
     prefs = bpy.context.preferences.addons[PKG].preferences
     tags = json.loads(prefs.osmTagsJson)
     return tags
+
+
+def get_tag_label(tag):
+    return DEFAULT_OSM_TAG_LABELS.get(tag, format_osm_tag_label(tag))
 
 #Global variable that will be seed by getTags() at each operator invoke
 #then callback of dynamic enum will use this global variable
@@ -117,7 +122,8 @@ class OSM_IMPORT():
         #we need to use a global variable as workaround to enum callback bug (T48873, T38489)
         for tag in OSMTAGS:
             #put each item in a tuple (key, label, tooltip)
-            items.append( (tag, tag, tag) )
+            label = get_tag_label(tag)
+            items.append( (tag, label, tag) )
         return items
 
     filterTags: EnumProperty(
