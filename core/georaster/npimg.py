@@ -135,7 +135,13 @@ class NpImage():
 
         #init from PIL Image instance
         if HAS_PIL:
-            if Image.isImageType(data):
+            # Pillow >= 10 removed Image.isImageType; fall back to isinstance check
+            if hasattr(Image, 'isImageType'):
+                is_pil_img = Image.isImageType(data)
+            else:
+                is_pil_img = isinstance(data, Image.Image)
+
+            if is_pil_img:
                 self.data = self._npFromPIL(data)
 
         if self.data is None:
