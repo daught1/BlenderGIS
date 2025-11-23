@@ -131,11 +131,23 @@ class IMPORTGIS_OT_gpx_props_dialog(Operator):
         default=True,
     )
 
+    def _prefill_elevation_choice(self, context):
+        meshes = self.listObjects(context)
+        if meshes and not self.objElevLst:
+            # Preselect the first mesh so draping works without extra clicks
+            self.objElevLst = meshes[0][0]
+            self.useElevObj = True
+
+    def invoke(self, context, event):
+        self._prefill_elevation_choice(context)
+        return context.window_manager.invoke_props_dialog(self)
+
     def check(self, context):
         return True
 
     def draw(self, context):
         layout = self.layout
+        self._prefill_elevation_choice(context)
         layout.prop(self, "useElevObj")
         if self.useElevObj:
             layout.prop(self, "objElevLst")
@@ -201,7 +213,14 @@ class IMPORTGIS_OT_gpx_props_dialog(Operator):
 
         elev_obj = None
         rayCaster = None
-        if self.useElevObj and self.objElevLst:
+        if self.useElevObj:
+            if not self.objElevLst:
+                meshes = self.listObjects(context)
+                if meshes:
+                    self.objElevLst = meshes[0][0]
+            if not self.objElevLst:
+                self.report({'ERROR'}, "No mesh selected to sample elevation from")
+                return {'CANCELLED'}
             try:
                 elev_obj = context.scene.objects[int(self.objElevLst)]
             except (ValueError, IndexError, KeyError):
