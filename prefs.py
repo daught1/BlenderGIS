@@ -57,7 +57,6 @@ DEFAULT_OSM_TAG_LIBRARY = {
     'Amenities': [
         'amenity',
         'amenity=parking',
-        'amenity=place_of_worship',
         'amenity=school'
     ],
     'Boundaries': [
@@ -67,65 +66,49 @@ DEFAULT_OSM_TAG_LIBRARY = {
     'Buildings': [
         'building',
         'building=apartments',
-        'building=detached',
-        'building=industrial',
         'building=residential'
     ],
     'Landuse': [
         'landuse',
         'landuse=farmland',
-        'landuse=forest',
-        'landuse=grass'
+        'landuse=forest'
     ],
     'Leisure': [
         'leisure',
-        'leisure=park',
-        'leisure=pitch',
-        'leisure=playground'
+        'leisure=park'
     ],
     'Man made': [
         'man_made',
-        'man_made=bridge',
-        'man_made=pier'
+        'man_made=bridge'
     ],
     'Natural': [
         'natural',
         'natural=cliff',
         'natural=glacier',
-        'natural=grassland',
         'natural=scree',
         'natural=wood'
     ],
     'Railway': [
         'railway',
-        'railway=rail',
-        'railway=station',
-        'railway=tram'
+        'railway=station'
     ],
     'Roads': [
         'highway',
         'highway=cycleway',
         'highway=primary',
         'highway=residential',
-        'highway=secondary',
-        'highway=tertiary',
         'highway=track'
     ],
     'Shops': [
         'shop',
-        'shop=convenience',
         'shop=supermarket'
     ],
     'Tourism': [
-        'tourism',
-        'tourism=attraction',
-        'tourism=hotel'
+        'tourism'
     ],
     'Water': [
         'waterway',
-        'waterway=canal',
-        'waterway=river',
-        'waterway=stream'
+        'waterway=river'
     ]
 }
 

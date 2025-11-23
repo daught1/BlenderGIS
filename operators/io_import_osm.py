@@ -28,10 +28,19 @@ PKG, SUBPKG = __package__.split('.', maxsplit=1)
 #WARNING: There is a known bug with using an enum property with a callback, Python must keep a reference to the strings returned
 #https://developer.blender.org/T48873
 #https://developer.blender.org/T38489
+MAX_OSM_FILTER_TAGS = 32
+
+
 def getTags():
     prefs = bpy.context.preferences.addons[PKG].preferences
     tags = json.loads(prefs.osmTagsJson)
-    return tags
+    if len(tags) > MAX_OSM_FILTER_TAGS:
+        log.warning(
+            "OSM filter tag list has %s items; trimming to first %s to satisfy Blender enum flag limit",
+            len(tags),
+            MAX_OSM_FILTER_TAGS,
+        )
+    return tags[:MAX_OSM_FILTER_TAGS]
 
 
 def get_tag_label(tag):
