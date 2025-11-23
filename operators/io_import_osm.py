@@ -11,6 +11,8 @@ import bmesh
 from bpy.types import Operator, Panel, AddonPreferences
 from bpy.props import StringProperty, IntProperty, FloatProperty, BoolProperty, EnumProperty, FloatVectorProperty
 
+from ..prefs import DEFAULT_OSM_TAGS
+
 from .lib.osm import overpy
 
 from ..geoscene import GeoScene
@@ -30,6 +32,19 @@ PKG, SUBPKG = __package__.split('.', maxsplit=1)
 def getTags():
     prefs = bpy.context.preferences.addons[PKG].preferences
     tags = json.loads(prefs.osmTagsJson)
+
+    # Ensure new default tags are available even when existing preferences were
+    # saved before the defaults were updated. Append any missing defaults and
+    # persist the expanded list so future sessions also see the new entries.
+    changed = False
+    for default_tag in DEFAULT_OSM_TAGS:
+        if default_tag not in tags:
+            tags.append(default_tag)
+            changed = True
+
+    if changed:
+        prefs.osmTagsJson = json.dumps(tags)
+
     return tags
 
 #Global variable that will be seed by getTags() at each operator invoke
