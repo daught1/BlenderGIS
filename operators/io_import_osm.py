@@ -110,6 +110,18 @@ def joinBmesh(src_bm, dest_bm):
 class OSM_IMPORT():
     """Import from Open Street Map"""
 
+    def set_default_filter_tags(self):
+        """Ensure filterTags starts with all registered tags as a baseline.
+
+        The EnumProperty cannot have a dynamic default, so we seed the current
+        set of tags at invocation time to present users with checkboxes for
+        every registered tag instead of pulling every available feature by
+        default.
+        """
+
+        if not self.filterTags:
+            self.filterTags = set(OSMTAGS)
+
     def enumTags(self, context):
         items = []
         ##prefs = context.preferences.addons[PKG].preferences
@@ -555,6 +567,7 @@ class IMPORTGIS_OT_osm_file(Operator, OSM_IMPORT):
         #workaround to enum callback bug (T48873, T38489)
         global OSMTAGS
         OSMTAGS = getTags()
+        self.set_default_filter_tags()
         #open file browser
         context.window_manager.fileselect_add(self)
         return {'RUNNING_MODAL'}
@@ -562,6 +575,10 @@ class IMPORTGIS_OT_osm_file(Operator, OSM_IMPORT):
     def execute(self, context):
 
         scn = context.scene
+
+        # Ensure tag selection is initialized when the operator is executed
+        # without going through invoke (eg, called from a script).
+        self.set_default_filter_tags()
 
         if not os.path.exists(self.filepath):
             self.report({'ERROR'}, "Invalid file")
@@ -647,6 +664,7 @@ class IMPORTGIS_OT_osm_query(Operator, OSM_IMPORT):
         #workaround to enum callback bug (T48873, T38489)
         global OSMTAGS
         OSMTAGS = getTags()
+        self.set_default_filter_tags()
 
         return context.window_manager.invoke_props_dialog(self)
 
@@ -658,6 +676,10 @@ class IMPORTGIS_OT_osm_query(Operator, OSM_IMPORT):
         geoscn = GeoScene(scn)
         objs = context.selected_objects
         aObj = context.active_object
+
+        # Ensure tag selection is initialized when the operator is executed
+        # without going through invoke (eg, called from a script).
+        self.set_default_filter_tags()
 
         if not geoscn.isGeoref:
                 self.report({'ERROR'}, "Scene is not georef")
