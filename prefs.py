@@ -60,9 +60,72 @@ DEFAULT_OSM_TAGS = [
     'landuse',
     'leisure',
     'natural',
+    'natural=wood',
+    'natural=scree',
+    'natural=glacier',
     'railway',
     'waterway'
 ]
+
+
+def normalize_osm_tags(raw_tags):
+    """Return a de-duplicated list of string tag names.
+
+    Older preference files may store OSM tags as 3-item tuples/lists
+    ``(value, label, tooltip)``. To keep new default tags visible in both the
+    preferences panel and the Get OSM dialog, collapse any sequence entries to
+    their first element and remove duplicates while preserving order.
+    """
+
+    normalized = []
+    seen = set()
+
+    for entry in raw_tags:
+        if isinstance(entry, (list, tuple)):
+            if not entry:
+                continue
+            entry = entry[0]
+
+        entry = str(entry)
+        if entry in seen:
+            continue
+
+        normalized.append(entry)
+        seen.add(entry)
+
+    return normalized
+
+
+def load_osm_tags(prefs, *, include_defaults=False, persist=False):
+    """Load OSM tags from preferences, normalizing legacy formats.
+
+    Parameters
+    ----------
+    prefs: bpy.types.AddonPreferences
+        Preferences object storing the serialized OSM tag list.
+    include_defaults: bool
+        When ``True``, append any missing ``DEFAULT_OSM_TAGS`` entries so the
+        UI consistently offers the current presets.
+    persist: bool
+        When ``True``, write any normalization or default additions back into
+        ``prefs.osmTagsJson`` so Blender remembers the updated list for future
+        sessions.
+    """
+
+    raw_tags = json.loads(prefs.osmTagsJson)
+    tags = normalize_osm_tags(raw_tags)
+
+    changed = tags != raw_tags
+    if include_defaults:
+        for default_tag in DEFAULT_OSM_TAGS:
+            if default_tag not in tags:
+                tags.append(default_tag)
+                changed = True
+
+    if changed and persist:
+        prefs.osmTagsJson = json.dumps(tags)
+
+    return tags
 
 
 
@@ -160,7 +223,7 @@ class BGIS_PREFS(AddonPreferences):
 
     def listOsmTags(self, context):
         prefs = context.preferences.addons[PKG].preferences
-        tags = json.loads(prefs.osmTagsJson)
+        tags = load_osm_tags(prefs, include_defaults=True, persist=True)
         #put each item in a tuple (key, label, tooltip)
         return [ (tag, tag, tag) for tag in tags]
 

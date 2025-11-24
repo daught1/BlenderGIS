@@ -11,6 +11,8 @@ import bmesh
 from bpy.types import Operator, Panel, AddonPreferences
 from bpy.props import StringProperty, IntProperty, FloatProperty, BoolProperty, EnumProperty, FloatVectorProperty
 
+from ..prefs import load_osm_tags
+
 from .lib.osm import overpy
 
 from ..geoscene import GeoScene
@@ -29,8 +31,7 @@ PKG, SUBPKG = __package__.split('.', maxsplit=1)
 #https://developer.blender.org/T38489
 def getTags():
     prefs = bpy.context.preferences.addons[PKG].preferences
-    tags = json.loads(prefs.osmTagsJson)
-    return tags
+    return load_osm_tags(prefs, include_defaults=True, persist=True)
 
 #Global variable that will be seed by getTags() at each operator invoke
 #then callback of dynamic enum will use this global variable
