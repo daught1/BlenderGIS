@@ -61,6 +61,7 @@ DEFAULT_OSM_TAGS = [
     'leisure',
     'natural',
     'natural=wood',
+    'natural=scree',
     'natural=glacier',
     'railway',
     'waterway'
