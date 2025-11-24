@@ -67,6 +67,34 @@ DEFAULT_OSM_TAGS = [
 ]
 
 
+def normalize_osm_tags(raw_tags):
+    """Return a de-duplicated list of string tag names.
+
+    Older preference files may store OSM tags as 3-item tuples/lists
+    ``(value, label, tooltip)``. To keep new default tags visible in both the
+    preferences panel and the Get OSM dialog, collapse any sequence entries to
+    their first element and remove duplicates while preserving order.
+    """
+
+    normalized = []
+    seen = set()
+
+    for entry in raw_tags:
+        if isinstance(entry, (list, tuple)):
+            if not entry:
+                continue
+            entry = entry[0]
+
+        entry = str(entry)
+        if entry in seen:
+            continue
+
+        normalized.append(entry)
+        seen.add(entry)
+
+    return normalized
+
+
 
 class BGIS_OT_pref_show(Operator):
 
@@ -162,7 +190,7 @@ class BGIS_PREFS(AddonPreferences):
 
     def listOsmTags(self, context):
         prefs = context.preferences.addons[PKG].preferences
-        tags = json.loads(prefs.osmTagsJson)
+        tags = normalize_osm_tags(json.loads(prefs.osmTagsJson))
         #put each item in a tuple (key, label, tooltip)
         return [ (tag, tag, tag) for tag in tags]
 
