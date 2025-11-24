@@ -11,7 +11,7 @@ import bmesh
 from bpy.types import Operator, Panel, AddonPreferences
 from bpy.props import StringProperty, IntProperty, FloatProperty, BoolProperty, EnumProperty, FloatVectorProperty
 
-from ..prefs import DEFAULT_OSM_TAGS, normalize_osm_tags
+from ..prefs import load_osm_tags
 
 from .lib.osm import overpy
 
@@ -31,22 +31,7 @@ PKG, SUBPKG = __package__.split('.', maxsplit=1)
 #https://developer.blender.org/T38489
 def getTags():
     prefs = bpy.context.preferences.addons[PKG].preferences
-    raw_tags = json.loads(prefs.osmTagsJson)
-    tags = normalize_osm_tags(raw_tags)
-
-    # Ensure new default tags are available even when existing preferences were
-    # saved before the defaults were updated. Append any missing defaults and
-    # persist the expanded list so future sessions also see the new entries.
-    changed = tags != raw_tags
-    for default_tag in DEFAULT_OSM_TAGS:
-        if default_tag not in tags:
-            tags.append(default_tag)
-            changed = True
-
-    if changed:
-        prefs.osmTagsJson = json.dumps(tags)
-
-    return tags
+    return load_osm_tags(prefs, include_defaults=True, persist=True)
 
 #Global variable that will be seed by getTags() at each operator invoke
 #then callback of dynamic enum will use this global variable

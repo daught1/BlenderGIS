@@ -95,6 +95,38 @@ def normalize_osm_tags(raw_tags):
     return normalized
 
 
+def load_osm_tags(prefs, *, include_defaults=False, persist=False):
+    """Load OSM tags from preferences, normalizing legacy formats.
+
+    Parameters
+    ----------
+    prefs: bpy.types.AddonPreferences
+        Preferences object storing the serialized OSM tag list.
+    include_defaults: bool
+        When ``True``, append any missing ``DEFAULT_OSM_TAGS`` entries so the
+        UI consistently offers the current presets.
+    persist: bool
+        When ``True``, write any normalization or default additions back into
+        ``prefs.osmTagsJson`` so Blender remembers the updated list for future
+        sessions.
+    """
+
+    raw_tags = json.loads(prefs.osmTagsJson)
+    tags = normalize_osm_tags(raw_tags)
+
+    changed = tags != raw_tags
+    if include_defaults:
+        for default_tag in DEFAULT_OSM_TAGS:
+            if default_tag not in tags:
+                tags.append(default_tag)
+                changed = True
+
+    if changed and persist:
+        prefs.osmTagsJson = json.dumps(tags)
+
+    return tags
+
+
 
 class BGIS_OT_pref_show(Operator):
 
@@ -190,7 +222,7 @@ class BGIS_PREFS(AddonPreferences):
 
     def listOsmTags(self, context):
         prefs = context.preferences.addons[PKG].preferences
-        tags = normalize_osm_tags(json.loads(prefs.osmTagsJson))
+        tags = load_osm_tags(prefs, include_defaults=True, persist=True)
         #put each item in a tuple (key, label, tooltip)
         return [ (tag, tag, tag) for tag in tags]
 
