@@ -140,9 +140,21 @@ class EPSGIO():
             except json.JSONDecodeError:
                 log.error('Cannot decode response from {}'.format(url))
                 return []
-            result = [obj] if obj else []
-            log.debug('Search results : {}'.format([ (r.get('code'), r.get('name')) for r in result ]))
-            return result
+
+            raw_results = []
+            if isinstance(obj, dict) and 'results' in obj:
+                raw_results = obj.get('results') or []
+            elif obj:
+                raw_results = [obj]
+
+            normalized = []
+            for r in raw_results:
+                code = str(r.get('code') or query).strip()
+                name = r.get('name') or r.get('title')
+                if code and name:
+                    normalized.append(dict(r, code=code, name=name))
+            log.debug('Search results : {}'.format([(r.get('code'), r.get('name')) for r in normalized]))
+            return normalized
 
         query = query.replace(' ', '+')
         url = "https://epsg.io/?q={QUERY}&format=json".replace("{QUERY}", query)
@@ -154,8 +166,14 @@ class EPSGIO():
         except json.JSONDecodeError:
             log.error('Cannot decode response from {}'.format(url))
             return []
-        log.debug('Search results : {}'.format([ (r['code'], r['name']) for r in obj.get('results', []) ]))
-        return obj.get('results', [])
+        results = []
+        for r in obj.get('results', []) or []:
+            code = r.get('code')
+            name = r.get('name') or r.get('title')
+            if code and name:
+                results.append(dict(r, code=code, name=name))
+        log.debug('Search results : {}'.format([(r.get('code'), r.get('name')) for r in results]))
+        return results
 
     @staticmethod
     def getEsriWkt(epsg):

@@ -456,15 +456,23 @@ class BGIS_OT_add_predef_crs(Operator):
             results = EPSGIO.search(self.query)
             self.results = json.dumps(results)
             if results:
-                self.crs = 'EPSG:' + results[0]['code']
-                self.name = results[0]['name']
+                code = results[0].get('code')
+                name = results[0].get('name')
+                if code:
+                    self.crs = 'EPSG:' + code
+                if name:
+                    self.name = name
 
     def updEnum(self, context):
         crsItems = []
         if self.results != '':
             for result in json.loads(self.results):
-                srid = 'EPSG:' + result['code']
-                crsItems.append( (result['code'], result['name'], srid) )
+                code = result.get('code')
+                name = result.get('name')
+                if not code or not name:
+                    continue
+                srid = 'EPSG:' + code
+                crsItems.append( (code, name, srid) )
         return crsItems
 
     def fill(self, context):
