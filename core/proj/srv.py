@@ -145,10 +145,15 @@ class EPSGIO():
             log.error('Http request to %s returned an empty response', url)
             return []
 
+        if response.lstrip().startswith('<'):
+            log.error('Got an HTML response from %s. EPSG search endpoints now redirect to the MapTiler Coordinates API; please configure access to that service.', url)
+            return []
+
         try:
             obj = json.loads(response)
         except json.JSONDecodeError:
-            log.error('Unable to decode response from %s : %s', url, response)
+            snippet = response[:500] + ('…' if len(response) > 500 else '')
+            log.error('Unable to decode response from %s : %s', url, snippet)
             return []
 
         log.debug('Search results : {}'.format([ (r['code'], r['name']) for r in obj.get('results', []) ]))
