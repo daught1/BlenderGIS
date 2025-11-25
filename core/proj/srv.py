@@ -20,8 +20,10 @@ import logging
 log = logging.getLogger(__name__)
 
 
+import os
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
+from urllib.parse import quote_plus
 import json
 
 from .. import settings
@@ -39,19 +41,25 @@ REPROJ_TIMEOUT = 60
 class EPSGIO():
 
     @staticmethod
-    def ping():
-        url = "http://epsg.io"
+    def ping(api_key=None):
+        api_key = api_key or os.environ.get("MAPTILER_API_KEY")
+
+        if api_key:
+            url = f"https://api.maptiler.com/coordinates/search/4326.json?key={api_key}&limit=1"
+        else:
+            url = "https://epsg.io"
+
         try:
             rq = Request(url, headers={'User-Agent': USER_AGENT})
             urlopen(rq, timeout=DEFAULT_TIMEOUT)
             return True
         except URLError as e:
-            log.error('Cannot ping {} web service, {}'.format(url, e.reason))
+            log.error('Cannot ping %s web service, %s', url, e.reason)
             return False
         except HTTPError as e:
-            log.error('Cannot ping {} web service, http error {}'.format(url, e.code))
+            log.error('Cannot ping %s web service, http error %s', url, e.code)
             return False
-        except:
+        except Exception:
             raise
 
 
@@ -125,20 +133,44 @@ class EPSGIO():
         return result
 
     @staticmethod
-    def search(query):
-        query = str(query).replace(' ', '+')
-        url = "https://epsg.io/?q={QUERY}&format=json"
-        url = url.replace("{QUERY}", query)
-        log.debug('Search crs : {}'.format(url))
+    def _build_maptiler_url(query, api_key):
+        encoded_query = quote_plus(str(query))
+        return f"https://api.maptiler.com/coordinates/search/{encoded_query}.json?key={api_key}"
+
+    @staticmethod
+    def _normalize_results(obj):
+        results = obj.get('results') or obj.get('crs') or obj.get('coordinateSystems') or []
+
+        normalized = []
+        for item in results:
+            code = str(item.get('code') or item.get('epsg') or item.get('identifier') or '').strip()
+            name = item.get('name') or item.get('title') or ''
+            if not code or not name:
+                continue
+            normalized.append({'code': code, 'name': name})
+
+        return normalized
+
+    @staticmethod
+    def search(query, api_key=None):
+        api_key = api_key or os.environ.get("MAPTILER_API_KEY")
+
+        if api_key:
+            url = EPSGIO._build_maptiler_url(query, api_key)
+        else:
+            query = quote_plus(str(query))
+            url = f"https://epsg.io/?q={query}&format=json"
+
+        log.debug('Search crs : %s', url)
         rq = Request(url, headers={'User-Agent': USER_AGENT})
 
         try:
             response = urlopen(rq, timeout=DEFAULT_TIMEOUT).read().decode('utf8')
         except HTTPError as err:
-            log.error('Http request fails url:{}, code:{}, error:{}'.format(url, err.code, err.reason))
+            log.error('Http request fails url:%s, code:%s, error:%s', url, err.code, err.reason)
             return []
         except URLError as err:
-            log.error('Http request fails url:{}, error:{}'.format(url, err.reason))
+            log.error('Http request fails url:%s, error:%s', url, err.reason)
             return []
 
         if not response:
@@ -146,7 +178,10 @@ class EPSGIO():
             return []
 
         if response.lstrip().startswith('<'):
-            log.error('Got an HTML response from %s. EPSG search endpoints now redirect to the MapTiler Coordinates API; please configure access to that service.', url)
+            if api_key:
+                log.error('Unexpected HTML response from %s, please verify your MapTiler API key and connectivity.', url)
+            else:
+                log.error('Got an HTML response from %s. EPSG search endpoints now redirect to the MapTiler Coordinates API; please configure access to that service or provide a MapTiler API key.', url)
             return []
 
         try:
@@ -156,8 +191,10 @@ class EPSGIO():
             log.error('Unable to decode response from %s : %s', url, snippet)
             return []
 
-        log.debug('Search results : {}'.format([ (r['code'], r['name']) for r in obj.get('results', []) ]))
-        return obj.get('results', [])
+        results = EPSGIO._normalize_results(obj)
+
+        log.debug('Search results : %s', [(r['code'], r['name']) for r in results])
+        return results
 
     @staticmethod
     def getEsriWkt(epsg):

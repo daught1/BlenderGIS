@@ -305,6 +305,11 @@ class BGIS_PREFS(AddonPreferences):
         description="you need to register and request a key from opentopography website"
     )
 
+    maptiler_api_key: StringProperty(
+        name = "",
+        description = "Optional MapTiler API key used for EPSG searches"
+    )
+
 
     ################
     #IO options
@@ -396,6 +401,9 @@ class BGIS_PREFS(AddonPreferences):
         row = box.row()
         row.label(text="Opentopography Api Key")
         box.row().prop(self, "opentopography_api_key")
+        row = box.row()
+        row.label(text="MapTiler API Key")
+        box.row().prop(self, "maptiler_api_key")
         #System
         box = layout.box()
         box.label(text='System')
@@ -450,10 +458,13 @@ class BGIS_OT_add_predef_crs(Operator):
         return True
 
     def search(self, context):
-        if not EPSGIO.ping():
-            self.report({'ERROR'}, "Cannot request epsg.io website")
+        prefs = bpy.context.preferences.addons[PKG].preferences
+        api_key = prefs.maptiler_api_key or None
+
+        if not EPSGIO.ping(api_key=api_key):
+            self.report({'ERROR'}, "Cannot reach CRS lookup service")
         else:
-            results = EPSGIO.search(self.query)
+            results = EPSGIO.search(self.query, api_key=api_key)
             self.results = json.dumps(results)
             if results:
                 self.crs = 'EPSG:' + results[0]['code']
