@@ -127,14 +127,32 @@ class EPSGIO():
     @staticmethod
     def search(query):
         query = str(query).replace(' ', '+')
-        url = "http://epsg.io/?q={QUERY}&format=json"
+        url = "https://epsg.io/?q={QUERY}&format=json"
         url = url.replace("{QUERY}", query)
         log.debug('Search crs : {}'.format(url))
         rq = Request(url, headers={'User-Agent': USER_AGENT})
-        response = urlopen(rq, timeout=DEFAULT_TIMEOUT).read().decode('utf8')
-        obj = json.loads(response)
-        log.debug('Search results : {}'.format([ (r['code'], r['name']) for r in obj['results'] ]))
-        return obj['results']
+
+        try:
+            response = urlopen(rq, timeout=DEFAULT_TIMEOUT).read().decode('utf8')
+        except HTTPError as err:
+            log.error('Http request fails url:{}, code:{}, error:{}'.format(url, err.code, err.reason))
+            return []
+        except URLError as err:
+            log.error('Http request fails url:{}, error:{}'.format(url, err.reason))
+            return []
+
+        if not response:
+            log.error('Http request to %s returned an empty response', url)
+            return []
+
+        try:
+            obj = json.loads(response)
+        except json.JSONDecodeError:
+            log.error('Unable to decode response from %s : %s', url, response)
+            return []
+
+        log.debug('Search results : {}'.format([ (r['code'], r['name']) for r in obj.get('results', []) ]))
+        return obj.get('results', [])
 
     @staticmethod
     def getEsriWkt(epsg):
