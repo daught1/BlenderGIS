@@ -20,10 +20,8 @@ import logging
 log = logging.getLogger(__name__)
 
 
-import os
 from urllib.request import Request, urlopen
 from urllib.error import URLError, HTTPError
-from urllib.parse import quote_plus
 import json
 
 from .. import settings
@@ -41,26 +39,19 @@ REPROJ_TIMEOUT = 60
 class EPSGIO():
 
     @staticmethod
-    def ping(api_key=None):
-        api_key = api_key or os.environ.get("MAPTILER_API_KEY")
-
-        url = EPSGIO._build_maptiler_url("4326", api_key, limit=1)
-
+    def ping():
+        url = "http://epsg.io"
         try:
             rq = Request(url, headers={'User-Agent': USER_AGENT})
             urlopen(rq, timeout=DEFAULT_TIMEOUT)
             return True
-        except HTTPError as e:
-            if e.code in (401, 403):
-                # The service is reachable but rejects the request until a key is provided.
-                log.warning('MapTiler service reachable but unauthorized (HTTP %s). Please configure an API key.', e.code)
-                return True
-            log.error('Cannot ping %s web service, http error %s', url, e.code)
-            return False
         except URLError as e:
-            log.error('Cannot ping %s web service, %s', url, e.reason)
+            log.error('Cannot ping {} web service, {}'.format(url, e.reason))
             return False
-        except Exception:
+        except HTTPError as e:
+            log.error('Cannot ping {} web service, http error {}'.format(url, e.code))
+            return False
+        except:
             raise
 
 
@@ -134,79 +125,20 @@ class EPSGIO():
         return result
 
     @staticmethod
-    def _build_maptiler_url(query, api_key, *, limit=None):
-        encoded_query = quote_plus(str(query))
-        url = f"https://api.maptiler.com/coordinates/search/{encoded_query}.json"
-
-        params = []
-        if api_key:
-            params.append(f"key={api_key}")
-        if limit is not None:
-            params.append(f"limit={limit}")
-
-        if params:
-            url += "?" + "&".join(params)
-
-        return url
-
-    @staticmethod
-    def _normalize_results(obj):
-        results = obj.get('results') or obj.get('crs') or obj.get('coordinateSystems') or []
-
-        normalized = []
-        for item in results:
-            code = str(item.get('code') or item.get('epsg') or item.get('identifier') or '').strip()
-            name = item.get('name') or item.get('title') or ''
-            if not code or not name:
-                continue
-            normalized.append({'code': code, 'name': name})
-
-        return normalized
-
-    @staticmethod
-    def search(query, api_key=None):
-        api_key = api_key or os.environ.get("MAPTILER_API_KEY")
-
-        url = EPSGIO._build_maptiler_url(query, api_key)
-
-        log.debug('Search crs : %s', url)
+    def search(query):
+        query = str(query).replace(' ', '+')
+        url = "http://epsg.io/?q={QUERY}&format=json"
+        url = url.replace("{QUERY}", query)
+        log.debug('Search crs : {}'.format(url))
         rq = Request(url, headers={'User-Agent': USER_AGENT})
-
-        try:
-            response = urlopen(rq, timeout=DEFAULT_TIMEOUT).read().decode('utf8')
-        except HTTPError as err:
-            if err.code in (401, 403):
-                log.error('MapTiler CRS search rejected the request with HTTP %s. Please configure a valid API key.', err.code)
-                return []
-            log.error('Http request fails url:%s, code:%s, error:%s', url, err.code, err.reason)
-            return []
-        except URLError as err:
-            log.error('Http request fails url:%s, error:%s', url, err.reason)
-            return []
-
-        if not response:
-            log.error('Http request to %s returned an empty response', url)
-            return []
-
-        if response.lstrip().startswith('<'):
-            log.error('Unexpected HTML response from %s; please verify your MapTiler API access and connectivity.', url)
-            return []
-
-        try:
-            obj = json.loads(response)
-        except json.JSONDecodeError:
-            snippet = response[:500] + ('…' if len(response) > 500 else '')
-            log.error('Unable to decode response from %s : %s', url, snippet)
-            return []
-
-        results = EPSGIO._normalize_results(obj)
-
-        log.debug('Search results : %s', [(r['code'], r['name']) for r in results])
-        return results
+        response = urlopen(rq, timeout=DEFAULT_TIMEOUT).read().decode('utf8')
+        obj = json.loads(response)
+        log.debug('Search results : {}'.format([ (r['code'], r['name']) for r in obj['results'] ]))
+        return obj['results']
 
     @staticmethod
     def getEsriWkt(epsg):
-        url = "http://epsg.io/{CODE}.esriwkt"
+        url = "https://epsg.io/{CODE}.esriwkt"
         url = url.replace("{CODE}", str(epsg))
         log.debug(url)
         rq = Request(url, headers={'User-Agent': USER_AGENT})
