@@ -44,20 +44,21 @@ class EPSGIO():
     def ping(api_key=None):
         api_key = api_key or os.environ.get("MAPTILER_API_KEY")
 
-        if api_key:
-            url = f"https://api.maptiler.com/coordinates/search/4326.json?key={api_key}&limit=1"
-        else:
-            url = "https://epsg.io"
+        url = EPSGIO._build_maptiler_url("4326", api_key, limit=1)
 
         try:
             rq = Request(url, headers={'User-Agent': USER_AGENT})
             urlopen(rq, timeout=DEFAULT_TIMEOUT)
             return True
+        except HTTPError as e:
+            if e.code in (401, 403):
+                # The service is reachable but rejects the request until a key is provided.
+                log.warning('MapTiler service reachable but unauthorized (HTTP %s). Please configure an API key.', e.code)
+                return True
+            log.error('Cannot ping %s web service, http error %s', url, e.code)
+            return False
         except URLError as e:
             log.error('Cannot ping %s web service, %s', url, e.reason)
-            return False
-        except HTTPError as e:
-            log.error('Cannot ping %s web service, http error %s', url, e.code)
             return False
         except Exception:
             raise
@@ -133,9 +134,20 @@ class EPSGIO():
         return result
 
     @staticmethod
-    def _build_maptiler_url(query, api_key):
+    def _build_maptiler_url(query, api_key, *, limit=None):
         encoded_query = quote_plus(str(query))
-        return f"https://api.maptiler.com/coordinates/search/{encoded_query}.json?key={api_key}"
+        url = f"https://api.maptiler.com/coordinates/search/{encoded_query}.json"
+
+        params = []
+        if api_key:
+            params.append(f"key={api_key}")
+        if limit is not None:
+            params.append(f"limit={limit}")
+
+        if params:
+            url += "?" + "&".join(params)
+
+        return url
 
     @staticmethod
     def _normalize_results(obj):
@@ -155,11 +167,7 @@ class EPSGIO():
     def search(query, api_key=None):
         api_key = api_key or os.environ.get("MAPTILER_API_KEY")
 
-        if api_key:
-            url = EPSGIO._build_maptiler_url(query, api_key)
-        else:
-            query = quote_plus(str(query))
-            url = f"https://epsg.io/?q={query}&format=json"
+        url = EPSGIO._build_maptiler_url(query, api_key)
 
         log.debug('Search crs : %s', url)
         rq = Request(url, headers={'User-Agent': USER_AGENT})
@@ -167,6 +175,9 @@ class EPSGIO():
         try:
             response = urlopen(rq, timeout=DEFAULT_TIMEOUT).read().decode('utf8')
         except HTTPError as err:
+            if err.code in (401, 403):
+                log.error('MapTiler CRS search rejected the request with HTTP %s. Please configure a valid API key.', err.code)
+                return []
             log.error('Http request fails url:%s, code:%s, error:%s', url, err.code, err.reason)
             return []
         except URLError as err:
@@ -178,10 +189,7 @@ class EPSGIO():
             return []
 
         if response.lstrip().startswith('<'):
-            if api_key:
-                log.error('Unexpected HTML response from %s, please verify your MapTiler API key and connectivity.', url)
-            else:
-                log.error('Got an HTML response from %s. EPSG search endpoints now redirect to the MapTiler Coordinates API; please configure access to that service or provide a MapTiler API key.', url)
+            log.error('Unexpected HTML response from %s; please verify your MapTiler API access and connectivity.', url)
             return []
 
         try:
