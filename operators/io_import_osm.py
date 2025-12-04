@@ -6,6 +6,8 @@ import random
 import logging
 log = logging.getLogger(__name__)
 
+from mathutils import geometry, Vector
+
 import bpy
 import bmesh
 from bpy.types import Operator, Panel, AddonPreferences
@@ -249,7 +251,18 @@ class OSM_IMPORT():
             return rings
 
         #######
-        def seed(id, tags, pts):
+        def point_in_ring(ring, point):
+            x, y = point
+            inside = False
+            for i in range(len(ring)):
+                x1, y1 = ring[i]
+                x2, y2 = ring[(i + 1) % len(ring)]
+                if ((y1 <= y < y2) or (y2 <= y < y1)) and (x < (x2 - x1) * (y - y1) / (y2 - y1 + 1e-12) + x1):
+                    inside = not inside
+            return inside
+
+        #######
+        def seed(id, tags, pts, holes=None):
             '''
             Sub funtion :
                 1. create a bmesh from [pts]
@@ -258,11 +271,17 @@ class OSM_IMPORT():
             # local extended tags list (includes "key=value" forms) for grouping
             extags_local = list(tags.keys()) + [k + '=' + v for k, v in tags.items()]
 
+            loops = [pts]
+            if holes:
+                loops.extend(holes)
+
             if len(pts) > 1:
-                if pts[0] == pts[-1] and any(tag in closedWaysArePolygons for tag in tags):
+                if (pts[0] == pts[-1] or holes) and any(tag in closedWaysArePolygons for tag in tags):
                     type = 'Areas'
                     closed = True
-                    pts.pop() #exclude last duplicate node
+                    for loop in loops:
+                        if loop and loop[0] == loop[-1]:
+                            loop.pop()
                 else:
                     type = 'Ways'
                     closed = False
@@ -271,22 +290,27 @@ class OSM_IMPORT():
                 closed = False
 
             #reproj and shift coords
-            pts = rprj.pts(pts)
             dx, dy = geoscn.crsx, geoscn.crsy
 
-            if self.useElevObj:
-                #pts = [rayCaster.rayCast(v[0]-dx, v[1]-dy).loc for v in pts]
-                pts = [rayCaster.rayCast(v[0]-dx, v[1]-dy) for v in pts]
-                hits = [pt.hit for pt in pts]
-                if not all(hits) and any(hits):
-                    zs = [p.loc.z for p in pts if p.hit]
-                    meanZ = sum(zs) / len(zs)
-                    for v in pts:
-                        if not v.hit:
-                            v.loc.z = meanZ
-                pts = [pt.loc for pt in pts]
-            else:
-                pts = [ (v[0]-dx, v[1]-dy, 0) for v in pts]
+            def reproj_loop(loop):
+                proj = rprj.pts(loop)
+                if self.useElevObj:
+                    proj = [rayCaster.rayCast(v[0]-dx, v[1]-dy) for v in proj]
+                    hits = [pt.hit for pt in proj]
+                    if not all(hits) and any(hits):
+                        zs = [p.loc.z for p in proj if p.hit]
+                        meanZ = sum(zs) / len(zs)
+                        for v in proj:
+                            if not v.hit:
+                                v.loc.z = meanZ
+                    proj = [pt.loc for pt in proj]
+                else:
+                    proj = [(v[0]-dx, v[1]-dy, 0) for v in proj]
+                return proj
+
+            loops = [reproj_loop(loop) for loop in loops]
+            pts = loops[0]
+            hole_pts = loops[1:]
 
             #Create a new bmesh
             #>using an intermediate bmesh object allows some extra operation like extrusion
@@ -296,13 +320,16 @@ class OSM_IMPORT():
                 verts = [bm.verts.new(pt) for pt in pts]
 
             elif closed: #faces
-                verts = [bm.verts.new(pt) for pt in pts]
-                face = bm.faces.new(verts)
-                #ensure face is up (anticlockwise order)
-                #because in OSM there is no particular order for closed ways
-                face.normal_update()
-                if face.normal.z < 0:
-                    face.normal_flip()
+                loop_vectors = [[Vector((p[0], p[1])) for p in loop] for loop in [pts] + hole_pts]
+                flat = [v for loop in [pts] + hole_pts for v in loop]
+                verts = [bm.verts.new(pt) for pt in flat]
+
+                triangles = geometry.tessellate_polygon(loop_vectors)
+                faces = [bm.faces.new([verts[i] for i in tri]) for tri in triangles]
+
+                bm.normal_update()
+                if sum(face.normal.z for face in faces) < 0:
+                    bmesh.ops.reverse_faces(bm, faces=faces)
 
                 if self.buildingsExtrusion and any(tag in closedWaysAreExtruded for tag in tags):
                     offset = None
@@ -335,24 +362,16 @@ class OSM_IMPORT():
                         maxH = self.defaultHeight + self.randomHeightThreshold
                         offset = random.randint(minH, maxH)
 
-                    #Extrude
-                    """
-                    if self.extrusionAxis == 'NORMAL':
-                        normal = face.normal
-                        vect = normal * offset
-                    elif self.extrusionAxis == 'Z':
-                    """
                     vect = (0, 0, offset)
-                    faces = bmesh.ops.extrude_discrete_faces(bm, faces=[face]) #return {'faces': [BMFace]}
-                    verts = faces['faces'][0].verts
+                    extrusion = bmesh.ops.extrude_face_region(bm, geom=faces)
+                    top_verts = [ele for ele in extrusion['geom'] if isinstance(ele, bmesh.types.BMVert)]
+
                     if self.useElevObj:
-                        #Making flat roof
-                        z = max([v.co.z for v in verts]) + offset #get max z coord
-                        for v in verts:
+                        z = max([v.co.z for v in top_verts]) + offset
+                        for v in top_verts:
                             v.co.z = z
                     else:
-                        bmesh.ops.translate(bm, verts=verts, vec=vect)
-
+                        bmesh.ops.translate(bm, verts=top_verts, vec=vect)
 
             elif len(pts) > 1: #edge
                 verts = [bm.verts.new(pt) for pt in pts]
@@ -506,13 +525,40 @@ class OSM_IMPORT():
             if not any(tag in closedWaysArePolygons for tag in mergedTags):
                 continue
 
-            for idx, ring in enumerate(build_rings(outer_segments, rel.id, 'outer')):
-                pts = [(float(node.lon), float(node.lat)) for node in ring]
-                seed(f"{rel.id}_outer_{idx}", mergedTags, pts)
+            outer_rings = build_rings(outer_segments, rel.id, 'outer')
+            inner_rings = build_rings(inner_segments, rel.id, 'inner')
 
-            for idx, ring in enumerate(build_rings(inner_segments, rel.id, 'inner')):
-                pts = [(float(node.lon), float(node.lat)) for node in ring]
-                seed(f"{rel.id}_inner_{idx}", mergedTags, pts)
+            ring_coords_outer = [
+                [(float(node.lon), float(node.lat)) for node in ring]
+                for ring in outer_rings
+            ]
+            ring_coords_inner = [
+                [(float(node.lon), float(node.lat)) for node in ring]
+                for ring in inner_rings
+            ]
+
+            hole_groups = {idx: [] for idx in range(len(ring_coords_outer))}
+            for inner in ring_coords_inner:
+                test_pt = inner[0]
+                assigned = False
+                for idx, outer in enumerate(ring_coords_outer):
+                    if point_in_ring(outer, test_pt):
+                        hole_groups[idx].append(inner)
+                        assigned = True
+                        break
+
+                if not assigned:
+                    log.warning(
+                        "Inner ring could not be associated with an outer for relation %s", rel.id
+                    )
+
+            for idx, outer in enumerate(ring_coords_outer):
+                seed(
+                    f"{rel.id}_outer_{idx}",
+                    mergedTags,
+                    outer,
+                    hole_groups.get(idx, []),
+                )
 
         if 'node' in self.featureType:
 
