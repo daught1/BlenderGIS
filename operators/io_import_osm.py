@@ -208,6 +208,46 @@ class OSM_IMPORT():
         bmeshes = {}
         vgroupsObj = {}
 
+        def build_rings(segments, rel_id, role):
+            rings = []
+            pending = [list(seg) for seg in segments if len(seg) > 1]
+
+            while pending:
+                ring = pending.pop(0)
+                closed = ring[0].id == ring[-1].id
+
+                while pending and not closed:
+                    merged = False
+                    for i, seg in enumerate(pending):
+                        start, end = seg[0].id, seg[-1].id
+                        if ring[-1].id == start:
+                            ring.extend(seg[1:])
+                        elif ring[-1].id == end:
+                            ring.extend(reversed(seg[:-1]))
+                        elif ring[0].id == end:
+                            ring = seg[:-1] + ring
+                        elif ring[0].id == start:
+                            ring = list(reversed(seg[1:])) + ring
+                        else:
+                            continue
+
+                        pending.pop(i)
+                        merged = True
+                        break
+
+                    closed = ring[0].id == ring[-1].id
+                    if not merged:
+                        break
+
+                if closed:
+                    rings.append(ring)
+                else:
+                    log.warning(
+                        "Unable to close %s ring for relation %s", role, rel_id
+                    )
+
+            return rings
+
         #######
         def seed(id, tags, pts):
             '''
@@ -430,6 +470,50 @@ class OSM_IMPORT():
                     #Do not overwrite existing tags to let member specific tags prevail
                     relTags.setdefault(key, value)
 
+        multipolygon_way_members = set()
+
+        for rel in result.relations:
+            if rel.tags.get('type') != 'multipolygon':
+                continue
+
+            mergedTags = dict(rel.tags)
+            outer_segments = []
+            inner_segments = []
+
+            for member in rel.members:
+                if not isinstance(member, overpy.RelationWay):
+                    continue
+
+                try:
+                    way = member.resolve()
+                except Exception:
+                    log.warning(
+                        "Unable to resolve way %s for relation %s", member.ref, rel.id,
+                        exc_info=True,
+                    )
+                    continue
+
+                multipolygon_way_members.add(way.id)
+
+                for key, value in way.tags.items():
+                    mergedTags.setdefault(key, value)
+
+                if member.role == 'inner':
+                    inner_segments.append(way.nodes)
+                else:
+                    outer_segments.append(way.nodes)
+
+            if not any(tag in closedWaysArePolygons for tag in mergedTags):
+                continue
+
+            for idx, ring in enumerate(build_rings(outer_segments, rel.id, 'outer')):
+                pts = [(float(node.lon), float(node.lat)) for node in ring]
+                seed(f"{rel.id}_outer_{idx}", mergedTags, pts)
+
+            for idx, ring in enumerate(build_rings(inner_segments, rel.id, 'inner')):
+                pts = [(float(node.lon), float(node.lat)) for node in ring]
+                seed(f"{rel.id}_inner_{idx}", mergedTags, pts)
+
         if 'node' in self.featureType:
 
             for node in result.nodes:
@@ -458,6 +542,9 @@ class OSM_IMPORT():
                 mergedTags.update(way.tags)
 
                 extags = list(mergedTags.keys()) + [k + '=' + v for k, v in mergedTags.items()]
+
+                if way.id in multipolygon_way_members:
+                    continue
 
                 if self.filterTags and not any(tag in self.filterTags for tag in extags):
                     continue
